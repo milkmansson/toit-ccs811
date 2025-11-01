@@ -1,0 +1,4 @@
+name: ccs811
+description: Toit CCS811 CO2 and VOC sensor driver.
+environment:
+  sdk: ^2.0.0-alpha.188

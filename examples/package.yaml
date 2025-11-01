@@ -1,0 +1,3 @@
+dependencies:
+  ccs811:
+    path: ..
