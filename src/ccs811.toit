@@ -43,8 +43,16 @@ class Ccs811:
   static REG-APP-VERIFY_ ::= 0xF1
   static REG-APP-START_  ::= 0xF1
 
+  static MEAS-MODE-MASK_              ::= 0b01110000
+  static MEAS-INTRPT-DATA-READY-MASK_ ::= 0b00001000
+  static MEAS-INTRPT-THRESHOLD-MASK_  ::= 0b00000100
 
-
+  static MODE-0 ::= 0b000 // Mode 0 – Idle (Measurements are disabled in this mode)
+  static MODE-1 ::= 0b001 // Mode 1 – Constant power mode, IAQ measurement every second
+  static MODE-2 ::= 0b010 // Mode 2 – Pulse heating mode IAQ measurement every 10 seconds
+  static MODE-3 ::= 0b011 // Mode 3 – Low power pulse heating mode IAQ measurement every 60 seconds
+  static MODE-4 ::= 0b100 // Mode 4 – Constant power mode, sensor measurement every 250ms
+  //static MODE-R ::= 0b1xx Reserved modes (For future use)
 
   static STATUS-FW-MODE-MASK_       ::= 0b10000000  // 0 = boot mode, 1 = app mode
   static STATUS-APP-ERASE-MASK_     ::= 0b01000000  // Boot mode only
@@ -109,13 +117,19 @@ class Ccs811:
     return raw * RAW-ADC-VOLTAGE-LSB_
 
   /**
-  Set the humidity value for the sensor to calibrate with
+  Set the temp and humidity values for the sensor to calibrate with
   */
-  set-humidity value/float -> none:
-    rel-hum := clamp-value_ value --lower=0.0 --upper=100.0
-    raw := ((rel-hum * 512.0).round).to-int
+  set-temp-humidity --humidity/float --temp/float -> none:
+    assert: temp >= -25.0
+    raw-temp := (((temp + 25.0) * 512.0).round).to-int
+    rel-hum := clamp-value_ humidity --lower=0.0 --upper=100.0
+    raw-hum := ((rel-hum * 512.0).round).to-int
     //write-register_ REG-ENV-DATA_ raw --mask=ENV-DATA-HUMIDITY-MASK_ --width=32
-    write-register_ REG-ENV-DATA_ raw --width=16
+    raw := (raw-hum << 16) | raw-temp
+    write-register_ REG-ENV-DATA_ raw --width=32
+    logger_.info "Set calibration humidity." --tags={"humidity":humidity,"raw":raw-hum}
+    logger_.info "Set calibration temperature." --tags={"temp":temp,"raw":raw-temp}
+
 
   /**
   Returns the value of the BASELINE register.
@@ -142,7 +156,6 @@ class Ccs811:
     assert: 0x0 <= value <= 0xFFFF
     write-register_ REG-BASELINE_ value --width=16
 
-
   /**
   Returns the value of the HARDWARE-ID register.
   */
@@ -164,22 +177,13 @@ class Ccs811:
   /**
   Returns the value of the HARDWARE-ID (VARIANT) register.
   */
-  get-firmware-boot-version -> int:
+  get-firmware-boot-version -> string:
     raw := read-register_ REG-BOOT-VERSION_ --width=16
-    major := raw & FW-BOOT-VERSION-MAJOR-MASK_
-    minor := raw & FW-BOOT-VERSION-MINOR-MASK_
-    trivial := raw & FW-BOOT-VERSION-TRIVIAL-MASK_
+    major := (raw & FW-BOOT-VERSION-MAJOR-MASK_) >> FW-BOOT-VERSION-MAJOR-MASK_.count-trailing-zeros
+    minor := (raw & FW-BOOT-VERSION-MINOR-MASK_)  >> FW-BOOT-VERSION-MINOR-MASK_.count-trailing-zeros
+    trivial := (raw & FW-BOOT-VERSION-TRIVIAL-MASK_) >> FW-BOOT-VERSION-TRIVIAL-MASK_.count-trailing-zeros
     return "$major.$minor.$trivial"
 
-
-  /**
-  Set the temperature value for the sensor to calibrate with
-  */
-  set-temperature temp/float -> none:
-    assert: temp >= -25.0
-    raw := (((temp + 25.0) * 512.0).round).to-int
-    //write-register_ REG-ENV-DATA_ raw --mask=ENV-DATA-TEMPERATURE-MASK_ --width=32
-    write-register_ (REG-ENV-DATA_ + 2) raw --width=16
 
   read-alg-register_ -> none:
     ba := reg_.read-bytes REG-ALG-RESULT-DATA_ 8
@@ -188,6 +192,24 @@ class Ccs811:
     // ba[4]            Status
     // ba[5]            Status
     // ba[6] << ba[7]   RAW-DATA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -261,22 +283,28 @@ class Ccs811:
       --offset/int?=null
       --width/int=DEFAULT-REGISTER-WIDTH_
       --signed/bool=false -> none:
-    assert: (width == 8) or (width == 16)
+    assert: (width == 8) or (width == 16) or (width == 32)
     if mask == null:
       mask = (width == 16) ? 0xFFFF : 0xFF
+      mask = (width == 32) ? 0xFFFFFFFF : 0xFF
     if offset == null:
       offset = mask.count-trailing-zeros
 
     field-mask/int := (mask >> offset)
     assert: ((value & ~field-mask) == 0)  // fit check
+    bit-32-ba := ?
 
     // Full-width direct write
     if ((width == 8)  and (mask == 0xFF)  and (offset == 0)) or
-      ((width == 16) and (mask == 0xFFFF) and (offset == 0)):
+      ((width == 16) and (mask == 0xFFFF) and (offset == 0)) or
+      ((width == 32) and (mask == 0xFFFFFFFF) and (offset == 0)):
       if width == 8:
         signed ? reg_.write-i8 register (value & 0xFF) : reg_.write-u8 register (value & 0xFF)
-      else:
+      else if width == 16:
         signed ? reg_.write-i16-be register (value & 0xFFFF) : reg_.write-u16-be register (value & 0xFFFF)
+      else:
+        bit-32-ba = to-bytes32 (value & 0xFFFFFFFF)
+        signed ? reg_.write-i32-be register (value & 0xFFFFFFFF) : reg_.write-bytes register bit-32-ba
       return
 
     // Read Reg for modification
@@ -286,11 +314,17 @@ class Ccs811:
         old-value = reg_.read-i8 register
       else:
         old-value = reg_.read-u8 register
-    else:
+    else if width == 16:
       if signed :
         old-value = reg_.read-i16-be register
       else:
         old-value = reg_.read-u16-be register
+    else:
+      if signed :
+        old-value = reg_.read-i32-be register
+      else:
+        old-value = reg_.read-u32-be register
+
 
     if old-value == null:
       logger_.error "write-register_: Read existing value (for modification) failed."
@@ -301,8 +335,43 @@ class Ccs811:
     if width == 8:
       signed ? reg_.write-i8 register new-value : reg_.write-u8 register new-value
       return
-    else:
+    else if width == 16:
       signed ? reg_.write-i16-be register new-value : reg_.write-u16-be register new-value
       return
-
+    else if width == 32:
+      bit-32-ba = to-bytes32 new-value
+      signed ? reg_.write-i32-be register new-value : reg_.write-bytes register bit-32-ba
+      return
     throw "write-register_: Unhandled Circumstance."
+
+  /**
+  Provides strings to display bitmasks nicely when testing.
+  */
+  bits-16_ x/int --min-display-bits/int=0 -> string:
+    assert: (x >= 0) and (x <= 0xFFFF)
+    if (x > 255) or (min-display-bits > 8):
+      out-string := "$(%b x)"
+      out-string = out-string.pad --left 16 '0'
+      out-string = "$(out-string[0..4]).$(out-string[4..8]).$(out-string[8..12]).$(out-string[12..16])"
+      return out-string
+    else if (x > 15) or (min-display-bits > 4):
+      out-string := "$(%b x)"
+      out-string = out-string.pad --left 8 '0'
+      out-string = "$(out-string[0..4]).$(out-string[4..8])"
+      return out-string
+    else:
+      out-string := "$(%b x)"
+      out-string = out-string.pad --left 4 '0'
+      out-string = "$(out-string[0..4])"
+      return out-string
+
+/**
+Turns a 32 bit value into a 4xbyte byte array
+*/
+to-bytes32 value/int -> ByteArray:
+  return #[
+    (value >> 24) & 0xFF,
+    (value >> 16) & 0xFF,
+    (value >> 8)  & 0xFF,
+    value & 0xFF
+  ]
