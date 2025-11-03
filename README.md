@@ -24,7 +24,7 @@ From the Datasheet:
 The driver exposes these using the following functions.  Note that the value
 returned will be the same if the driver is queried faster than the refresh rate
 set using 'measure mode':
-```
+```Toit
 // I2C Setup omitted
 
 // Ccs811.MODE-0 = Off = No samples
