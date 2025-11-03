@@ -50,6 +50,32 @@ accordingly.  A worked example of this exists in the
 [examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples)
 folder.
 
+### Baseline Correction and 'Manual Baseline Correction':
+From the datasheet:
+> The resistance of the sensitive layer is the output of the sensor.  However,
+> metal oxide sensors do not give absolute readings. The resistance varies from
+> sensor to sensor (manufacturing variation), from use-case to use-case, and
+> over time. To mitigate this problem, the output of the sensor is normalized:
+> R(sensor) is divided by R(a) . The value of R(a) is known as the baseline.
+> R(a) cannot be determined by a one-time calibration; it is maintained
+> on-the-fly in software.  This process is known as baseline correction.  The
+> air quality is expected to vary in a typical environment so the minimum time
+> over which a baseline correction is applied is 24 hours. Automatic baseline
+> correction is enabled after initial device operation.
+There is a mechanism to manually save and restore baseline values in the
+BASELINE register.  (For additional information on this, refer to application
+note ams AN000370: CCS811 Clean Air Baseline Save and Restore.  The driver exposes
+this setting in the following way:
+```Toit
+// Get Baseline Value
+baseline-correction-value/int := driver.get-baseline
+
+// Set Baseline Value
+driver.set-baseline baseline-correction-value
+```
+Note that the conditioning period must also be observed before using the BASELINE
+register (see below).
+
 ### WAK Pin:
 The device has a pin marked "WAK" which means "WAKE".  It must be held low for
 the device to answer at all.  In my testing, I tied this to GND and did all
