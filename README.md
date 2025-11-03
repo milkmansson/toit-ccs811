@@ -175,13 +175,12 @@ Typical ranges appear to be:
 ### Ranges for eTVOC
 This is significantly harder to determine, as the sensor will react to quite a
 wide range of compounds, including Combustion products, air fresheners, solvents
-like nail polish remover, etc.
+like nail polish remover, etc.  The typical components of human flatulence will definitely register a transient bump, dependent on distance and airflow.  The sensor can’t tell you what caused the VOC change, *only that air quality just took a turn for the worse.*
 | eTVOC | (Indoor) Air Quality Interpretation |
 | - | - |
 | < 150 ppb	| Excellent air |
 | 150–500 ppb	| Moderate pollutants, normal indoor |
 | > 1000 ppb | Poor air quality |
-
 
 ## Sources/Links
 Links to sources:
