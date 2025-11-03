@@ -56,7 +56,7 @@ From the datasheet:
 > metal oxide sensors do not give absolute readings. The resistance varies from
 > sensor to sensor (manufacturing variation), from use-case to use-case, and
 > over time. To mitigate this problem, the output of the sensor is normalized:
-> R(sensor) is divided by R(a) . The value of R(a) is known as the baseline.
+> R(sensor) is divided by R(a). The value of R(a) is known as the baseline.
 > R(a) cannot be determined by a one-time calibration; it is maintained
 > on-the-fly in software.  This process is known as baseline correction.  The
 > air quality is expected to vary in a typical environment so the minimum time
