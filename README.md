@@ -70,7 +70,7 @@ The datasheet states that the device requires a Burn-In time:
 **However**, a later firmware update to the device reduces this requirement. Please
 see below.
 
-#### 'Conditioning Period'
+### 'Conditioning Period'
 > After early-life (Burn-In) the conditioning or run-in period is the time
 > required to achieve good sensor stability before measuring VOCs after long idle
 > period.  After writing to MEAS_MODE to configure the sensor in mode 1-4, run
@@ -79,7 +79,7 @@ see below.
 **However**, a later firmware update to the device changes this requirement.  Please
 see below.
 
-## Firmware and 'running-in'
+### Firmware and 'running-in'
 Please see [this
 readme](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md).
 The device this library was created with was already at v2.0.0, and recently
