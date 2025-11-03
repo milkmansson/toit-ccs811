@@ -13,11 +13,48 @@ metrics.
 > caveats for this device.  Please read below.
 
 ## Features
+### Temperature and Humidity Compensation:
+If an external sensor is available, temperature and humidity information can be
+passed to the CCS811.  The IC will automatically compensate its readings
+accordingly.  A worked example of this exists in the
+[examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples)
+folder.
 
+### WAK Pin:
+The device has a pin marked "WAK" which means "WAKE".  It must be held low for
+the device to answer at all.  In my testing, I tied this to GND and did all
+tests.  In scenarios requiring super low battery usage, this might be a smart
+method to reduce power considerably.  This could be used in combination with
+deep-sleep, using an extra GPIO pin in order to control the device.
+
+### INT Pin:
+The device has an interrupt pin, which alerts low.  Can be used to set the
+interrupt pin each time data is ready.  Super useful if in low power mode - can
+wake the microcontroller from deep sleep, where the microcontroller will perform
+a read/write/save to the internet, etc, and put itself back to sleep again.
+```Toit
+// i2c setup omitted
+
+// Sets 60sec measurements, and enables the data-ready interrupt.
+set-measure-mode Ccs811.MODE-3 --intrpt-data-ready=True
+```
+Alerts can be used to wake the microcontroller from deep sleep if specific eCO2
+values have been reached as well.  Both threshold, and data-ready alerts can be
+set at once.
+```Toit
+// i2c setup omitted
+
+// eCO2 values in ppm (defaults shown).  If threshold exceeded by 50ppm then
+// the alert is generated.
+driver.set-eco2-thresholds --low=1500 --high=2500
+
+// Sets 1sec measurements, and enables the threshold interrupt.
+set-measure-mode Ccs811.MODE-1 --intrpt-threshold=True
+```
 
 
 ## Caveats
-#### 'Early-Life'
+### 'Early-Life'
 The datasheet states that the device requires a Burn-In time:
 > "CCS811 performance in terms of resistance levels and sensitivities will change
 > during early life. The change in resistance is greatest over the first 48 hours
@@ -37,14 +74,18 @@ see below.
 **However**, a later firmware update to the device changes this requirement.  Please
 see below.
 
-#### Temperature and Humidity Compensation:
-If an external sensor is available, temperature and humidity information can be passed to the CCS811.  The IC will automatically compensate its readings accordingly.  A worked example of this exists in the [examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples) folder.
 
-#### Firmware
-  Please
-see [this
-readme](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md).  The device this library was created with was already at v2.0.0, and recently purchased devices appear to come with the latest firmware.  Therefore, this library was not extended to include firmware update capability.  See the [examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples) folder for examples of determining what APP-VERSION your IC has.  See the [this
-repo](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md) for help on updating, if it is indeed required.  Raise an issue if a need exists for updating in this driver.
+## Firmware and 'running-in'
+Please see [this
+readme](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md).
+The device this library was created with was already at v2.0.0, and recently
+purchased devices appear to come with the latest firmware.  Therefore, this
+library was not extended to include firmware update capability.  See the
+[examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples) folder
+for examples of determining what APP-VERSION your IC has.  See the [this
+repo](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md)
+for help on updating, if it is indeed required.  Raise an issue if a need exists
+for updating in this driver.
 
 
 

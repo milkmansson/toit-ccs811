@@ -94,9 +94,11 @@ class Ccs811:
   wait-timeout/Duration? := null
   cached-measure-mode_/int? := null
 
-  // Because this value can't be read, cach values for query (from datasheet)
+  // Because these values can't be read, cache values for later query (from datasheet)
   cached-humidity-corr-pct_/float := 50.0
   cached-temp-corr-c_/float := 25.0
+  cached-low-med-eco2-threshold_/int := 1500
+  cached-med-high-eco2-threshold_/int := 2500
 
   constructor
       device/serial.Device
@@ -441,7 +443,7 @@ class Ccs811:
     if (cached-measure-mode_ < MODE-1) and (cached-measure-mode_ > MODE-3) : return null
     read-alg-register_ --wait=wait
     if (alg-byte-array_ != null):
-      return i16-be_ alg-byte-array_[0] alg-byte-array_[1]
+      return from-i16-be_ alg-byte-array_[0] alg-byte-array_[1]
     else:
       return null
 
@@ -455,7 +457,7 @@ class Ccs811:
     if (cached-measure-mode_ < MODE-1) and (cached-measure-mode_ > MODE-3) : return null
     read-alg-register_ --wait=wait
     if alg-byte-array_ != null:
-      return i16-be_ alg-byte-array_[2] alg-byte-array_[3]
+      return from-i16-be_ alg-byte-array_[2] alg-byte-array_[3]
     else:
       return null
 
@@ -515,9 +517,67 @@ class Ccs811:
       return null
 
   /**
-  Parse big-endian 16bit from two separate bytes - eg when reading from FIFO.
+  Sets eCO2 thresholds for interrupt use.
+
+  An interrupt is asserted if the eCO2 value moves from the current range (Low,
+   Medium, or High) into another range by more than 50ppm
   */
-  i16-be_ high-byte/int low-byte/int --signed/bool=false -> int:
+  set-eco2-thresholds --low-med/int?=null --med-high/int?=null -> none:
+    assert: 0x0 <= low-med <= 0xFFFF
+    assert: 0x0 <= med-high <= 0xFFFF
+    low-ba/ByteArray := #[]
+    high-ba/ByteArray := #[]
+    if low-med == null:
+      low-ba = to-i16-be cached-low-med-eco2-threshold_
+    else:
+      low-ba = to-i16-be low-med
+      cached-low-med-eco2-threshold_ = low-med
+    if med-high == null:
+      high-ba = to-i16-be cached-med-high-eco2-threshold_
+    else:
+      high-ba = to-i16-be med-high
+      cached-med-high-eco2-threshold_ = med-high
+    reg_.write-bytes REG-THRESHOLDS_ #[low-ba[0] , low-ba[1] , high-ba[0] , high-ba[1]]
+
+  /**
+  Gets cached eCO2 low-med threshold that the interrupt uses.
+
+  Note this value is cached in the driver because the register cannot be read.
+  */
+  get-eco2-med-low-threshold -> int:
+    return cached-low-med-eco2-threshold_
+
+  /**
+  Gets cached eCO2 med-high threshold that the interrupt uses.
+
+  Note this value is cached in the driver because the register cannot be read.
+  */
+  get-eco2-low-high-threshold -> int:
+    return cached-med-high-eco2-threshold_
+
+  /**
+  Encode integer as big-endian 16bit in two bytes.
+
+  - signed=false => 0..65535
+  - signed=true  => -32768..32767 (two's complement)
+  */
+  to-i16-be value/int --signed/bool=false -> ByteArray:
+    u/int := 0
+    if signed:
+      assert: -32760 <= value <= 32767
+      u = (value < 0) ? (value + 0x10000) : value
+    else:
+      assert: 0 <= value <= 65535
+      u = value
+
+    high := (u >> 8) & 0xFF
+    low  := u & 0xFF
+    return #[high, low]
+
+  /**
+  Parse big-endian 16bit from two separate bytes.
+  */
+  from-i16-be_ high-byte/int low-byte/int --signed/bool=false -> int:
     high := high-byte & 0xFF
     low := low-byte & 0xFF
     value := (high << 8) | low
