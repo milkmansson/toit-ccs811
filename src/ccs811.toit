@@ -152,7 +152,7 @@ class Ccs811:
     value := (drive-mode << 4)
     if intrpt-data-ready: value |= MEAS-INTRPT-DATA-READY-MASK_
     if intrpt-threshold: value |= MEAS-INTRPT-THRESHOLD-MASK_
-    logger_.debug "Measure mode set." --tags={"register" : "$(bits-16_ value --min-display-bits=8)"}
+    logger_.debug "Measure mode set." --tags={"register" : "$(bits-grouped_ value --min-display-bits=8)"}
     write-register_ REG-MEAS-MODE_ value --width=8
     alg-byte-array_ = null
     cached-measure-mode_ = drive-mode
@@ -483,7 +483,7 @@ class Ccs811:
       return raw
 
   /**
-  Gives raw current read from cache.
+  Gives raw current read from cache (amps).
 
   Checks for new sensor data before decoding cached bytes.
   - alg-byte-array_[6] << alg-byte-array_[7] is raw read register.
@@ -494,12 +494,13 @@ class Ccs811:
     read-alg-register_ --wait=wait
     if alg-byte-array_ != null:
       raw16  := ((alg-byte-array_[6] & 0xFF) << 8) | (alg-byte-array_[7] & 0xFF)
-      return ((raw16 >> (RAW-ADC-READING-MASK_.count-trailing-zeros)) & RAW-DATA-CURRENT-SELECTED-MASK_).to-float / 1e6
+      cur-ua := (raw16 & RAW-DATA-CURRENT-SELECTED-MASK_) >> (RAW-DATA-CURRENT-SELECTED-MASK_.count-trailing-zeros)
+      return cur-ua.to-float / 1e6
     else:
       return null
 
   /**
-  Gives raw sensor voltage read from cache.
+  Gives raw sensor voltage read from cache (volts).
 
   Checks for new sensor data before decoding cached bytes.
   - alg-byte-array_[6] << alg-byte-array_[7] is raw read register.
@@ -654,29 +655,69 @@ class Ccs811:
   /**
   Provides strings to display bitmasks nicely when testing.
   */
-  bits-16_ x/int --min-display-bits/int=0 -> string:
-    assert: (x >= 0) and (x <= 0xFFFFFFFF)
-    out-string := "$(%b x)"
-    if (x > 0xFFFF) or (min-display-bits > 24):
+  bits-grouped_ x/int
+      --min-display-bits/int=0
+      --group-size/int=4
+      --sep/string="."
+      -> string:
+
+    assert: x >= 0
+    assert: group-size > 0
+
+    // raw binary
+    bin := "$(%b x)"
+
+    // choose target width: at least min-display-bits, then round up to a full group
+    groups := 0
+    leftover := 0
+    width := bin.size
+    if min-display-bits > width:
+      width = min-display-bits
+    if group-size > width:
+      width = group-size
+    leftover = width % group-size
+    if leftover > 0:
+      width = width + (group-size - leftover)
+
+    // left-pad to target width
+    bin = bin.pad --left width '0'
+
+    // group left->right
+    out := ""
+    i := 0
+    while i < bin.size:
+      if i > 0: out = "$(out)$(sep)"
+      j := i + group-size
+      if j > bin.size: j = bin.size
+      out = "$(out)$(bin[i..j])"
+      i = j
+
+    return out
+
+    /*
+    if (x > 0xFFFF) or (min-display-bits >= 32):
       out-string = out-string.pad --left 32 '0'
       out-string = "$(out-string[0..4]).$(out-string[4..8]).$(out-string[8..12]).$(out-string[12..16]).$(out-string[16..20]).$(out-string[20..24]).$(out-string[24..28]).$(out-string[28..32])"
       return out-string
-    if (x > 0xFFF) or (min-display-bits > 16):
+    if (x > 0xFFF) or (min-display-bits >= 24):
+      print "got here"
       out-string = out-string.pad --left 24 '0'
       out-string = "$(out-string[0..4]).$(out-string[4..8]).$(out-string[8..12]).$(out-string[12..16]).$(out-string[16..20]).$(out-string[20..24])"
       return out-string
-    if (x > 0xFF) or (min-display-bits > 8):
+    if (x > 0xFF) or (min-display-bits >= 16):
       out-string = out-string.pad --left 16 '0'
       out-string = "$(out-string[0..4]).$(out-string[4..8]).$(out-string[8..12]).$(out-string[12..16])"
       return out-string
-    else if (x > 0xF) or (min-display-bits > 4):
+    else if (x > 0xF) or (min-display-bits >= 8):
       out-string = out-string.pad --left 8 '0'
       out-string = "$(out-string[0..4]).$(out-string[4..8])"
       return out-string
+
     else:
       out-string = out-string.pad --left 4 '0'
       out-string = "$(out-string[0..4])"
       return out-string
+    */
 
   /**
   Turns a 32 bit value into a 4xbyte byte array
@@ -694,19 +735,29 @@ class Ccs811:
   */
   duration-to-string dur/Duration -> string:
     total-ms := dur.in-ms
+    //print "TOTAL MS: $total-ms"
     sign := ""
     if total-ms < 0:
       sign = "-"
       total-ms = -total-ms
 
     ms/int := total-ms % 1000
-    total-s := total-ms / 1000
+    total-s := (total-ms / 1000).to-int
+    //print "$(total-s).$(ms)"
+
     s/int := total-s % 60
     total-m/int := total-s / 60
-    m := total-m % 60
-    total-h := total-m % 60
-    h:= total-h
+    //print "$(%02d total-m):$(%02d s).$(ms)"
 
+    m/int := total-m % 60
+    total-h := total-m / 60
+    //print "$(%02d total-h):$(%02d m):$(%02d s).$(ms)"
+
+    h/int := total-h % 24
+    total-d := total-h / 24
+
+    if total-d > 0:
+      return "$sign $(total-d)d $(%02d h):$(%02d m):$(%02d s).$(%03d ms)"
     if h > 0:
       return "$sign$(%02d h):$(%02d m):$(%02d s).$(%03d ms)"
     else if m > 0:
@@ -724,13 +775,13 @@ class Ccs811:
     error-bitmask := get-error-bitmask_ --clear=false
     error-text := get-error-text error-bitmask
     logger_.info "DUMP STATUS" --tags={
-      "status-register": "$(bits-16_ s --min-display-bits=8)",
+      "status-register": "$(bits-grouped_ s --min-display-bits=8)",
       "FW-MODE_": "$(%0b (s >> STATUS-FW-MODE-MASK_.count-trailing-zeros) & 1)",
       "APP-VALID_": "$(%0b (s >> STATUS-APP-VALID-MASK_.count-trailing-zeros) & 1)",
       "DATA-READY_": "$(%0b (s >> STATUS-DATA-READY-MASK_.count-trailing-zeros) & 1)",
       "ERROR_": "$(%0b (s & STATUS-ERROR-MASK_.count-trailing-zeros) & 1)",
       "BASELINE_": "0x$(%04x baseline)",
       "HW-ID_": "0x$(%02x hw-id)",
-      "error-register": "$(bits-16_ error-bitmask --min-display-bits=8)",
+      "error-register": "$(bits-grouped_ error-bitmask --min-display-bits=8)",
       "error-text": error-text
     }

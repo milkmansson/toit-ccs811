@@ -9,35 +9,42 @@ metrics.
 ![Front and back of a ccs811](images/ccs811.jpg)
 
 > [!WARNING]
-> This device is allegedly obsolete.  It is quoted as being noisy and outdated.
-> However they are still cheap, widely available, and good enough for many
-> projects such as mine, making a driver worth the time to write.
-
-
-## Caveats
-- **'Early-Life':** - the datasheet states that the device requires a Burn-In time:
-> "CCS811 performance in terms of resistance levels and sensitivities will change
-> during early life. The change in resistance is greatest over the first 48 hours
-> of operation.  CCS811 controls the burn-in period allowing eCO 2 and eTVOC
-> readings to be used from first power-on after 60 minutes of operation in modes
-> 1-3." (pp12)
-- **'Conditioning Period':**
-> After early-life (Burn-In) the conditioning or run-in period is the time
-> required to achieve good sensor stability before measuring VOCs after long idle
-> period.  After writing to MEAS_MODE to configure the sensor in mode 1-4, run
-> CCS811 for 20 minutes, before accurate readings are generated. (pp12)
-- **Temperature and Humidity Compensation:** If an external sensor is available,
-temperature and humidity information can be passed to the CCS811.  The IC will
-automatically compensate its readings accordingly.
-
-
-
-
- eCO2 and eTVOC Air quality sensor
+> This device is quite old, although they are about.  There are operational
+> caveats for this device.  Please read below.
 
 ## Features
 
 
+
+## Caveats
+#### 'Early-Life'
+The datasheet states that the device requires a Burn-In time:
+> "CCS811 performance in terms of resistance levels and sensitivities will change
+> during early life. The change in resistance is greatest over the first 48 hours
+> of operation.  CCS811 controls the burn-in period allowing eCO 2 and eTVOC
+> readings to be used from first power-on after 60 minutes of operation in modes
+> 1-3." (pp12).
+
+**However**, a later firmware update to the device reduces this requirement. Please
+see below.
+
+#### 'Conditioning Period'
+> After early-life (Burn-In) the conditioning or run-in period is the time
+> required to achieve good sensor stability before measuring VOCs after long idle
+> period.  After writing to MEAS_MODE to configure the sensor in mode 1-4, run
+> CCS811 for 20 minutes, before accurate readings are generated. (pp12)
+
+**However**, a later firmware update to the device changes this requirement.  Please
+see below.
+
+#### Temperature and Humidity Compensation:
+If an external sensor is available, temperature and humidity information can be passed to the CCS811.  The IC will automatically compensate its readings accordingly.  A worked example of this exists in the [examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples) folder.
+
+#### Firmware
+  Please
+see [this
+readme](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md).  The device this library was created with was already at v2.0.0, and recently purchased devices appear to come with the latest firmware.  Therefore, this library was not extended to include firmware update capability.  See the [examples](https://github.com/milkmansson/toit-ccs811/tree/main/examples) folder for examples of determining what APP-VERSION your IC has.  See the [this
+repo](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md) for help on updating, if it is indeed required.  Raise an issue if a need exists for updating in this driver.
 
 
 
