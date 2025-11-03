@@ -33,7 +33,7 @@ interrupt pin each time data is ready.  Super useful if in low power mode - can
 wake the microcontroller from deep sleep, where the microcontroller will perform
 a read/write/save to the internet, etc, and put itself back to sleep again.
 ```Toit
-// i2c setup omitted
+// I2C Setup omitted
 
 // Sets 60sec measurements, and enables the data-ready interrupt.
 set-measure-mode Ccs811.MODE-3 --intrpt-data-ready=True
@@ -42,7 +42,7 @@ Alerts can be used to wake the microcontroller from deep sleep if specific eCO2
 values have been reached as well.  Both threshold, and data-ready alerts can be
 set at once.
 ```Toit
-// i2c setup omitted
+// I2C Setup omitted
 
 // eCO2 values in ppm (defaults shown).  If threshold exceeded by 50ppm then
 // the alert is generated.
@@ -51,7 +51,6 @@ driver.set-eco2-thresholds --low=1500 --high=2500
 // Sets 1sec measurements, and enables the threshold interrupt.
 set-measure-mode Ccs811.MODE-1 --intrpt-threshold=True
 ```
-
 
 ## Caveats
 ### 'Early-Life'
