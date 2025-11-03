@@ -10,7 +10,8 @@ metrics.
 
 > [!WARNING]
 > This device is quite old, although they are about.  There are operational
-> caveats for this device.  Please read below.
+> caveats for this device, including minimum run-in times, and firmware.
+> Please read below.
 
 ## Features
 ### Temperature and Humidity Compensation:
@@ -51,6 +52,11 @@ driver.set-eco2-thresholds --low=1500 --high=2500
 // Sets 1sec measurements, and enables the threshold interrupt.
 set-measure-mode Ccs811.MODE-1 --intrpt-threshold=True
 ```
+### Reset Pin
+RESET is an active low input and is pulled up to VDD by default.  RESET is
+optional, but 4.7kOhm pull-up and/or decoupling of the nRESET pin may be
+necessary to avoid erroneous noise-induced resets.  This pin is pulled low
+internally during a reset.
 
 ## Caveats
 ### 'Early-Life'
@@ -73,7 +79,6 @@ see below.
 **However**, a later firmware update to the device changes this requirement.  Please
 see below.
 
-
 ## Firmware and 'running-in'
 Please see [this
 readme](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flash/README.md).
@@ -87,17 +92,12 @@ for help on updating, if it is indeed required.  Raise an issue if a need exists
 for updating in this driver.
 
 
-
-
-### Sources
+### Sources/Links
 Links to sources:
 - [Maarten Pennings'](https://github.com/maarten-pennings) Github
   [repo](https://github.com/maarten-pennings/CCS811) with device driver,
   firmware files, and an updater. Invaluable - the AMS website seems to have
   forgotten this device.
-
-
-## Links
 - [Datasheet](https://cdn.sparkfun.com/assets/2/c/c/6/5/CN04-2019_attachment_CCS811_Datasheet_v1-06.pdf)
 
 ## Issues
