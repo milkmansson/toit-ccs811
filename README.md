@@ -92,7 +92,7 @@ for help on updating, if it is indeed required.  Raise an issue if a need exists
 for updating in this driver.
 
 
-### Sources/Links
+## Sources/Links
 Links to sources:
 - [Maarten Pennings'](https://github.com/maarten-pennings) Github
   [repo](https://github.com/maarten-pennings/CCS811) with device driver,
