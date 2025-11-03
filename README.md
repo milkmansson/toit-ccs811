@@ -63,9 +63,9 @@ From the datasheet:
 > over which a baseline correction is applied is 24 hours. Automatic baseline
 > correction is enabled after initial device operation.
 There is a mechanism to manually save and restore baseline values in the
-BASELINE register.  (For additional information on this, refer to application
-note ams AN000370: CCS811 Clean Air Baseline Save and Restore.  The driver exposes
-this setting in the following way:
+BASELINE register.  (For additional information, search for application
+note 'ams AN000370: CCS811 Clean Air Baseline Save and Restore'.)  This driver
+exposes the feature in the following way:
 ```Toit
 // Get Baseline Value
 baseline-correction-value/int := driver.get-baseline
