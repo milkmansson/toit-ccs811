@@ -14,6 +14,35 @@ metrics.
 > Please read below.
 
 ## Features
+
+### Reading eCO2 and eTVOC:
+From the Datasheet:
+> CCS811 supports intelligent algorithms to process raw sensor measurements to
+> output equivalent Total Volatile Organic Compounds (eTVOC) and equivalent CO2
+> (eCO2) values, where the main cause of VOCs is from humans. (pp 1).
+
+The driver exposes these using the following functions.  Note that the value
+returned will be the same if the driver is queried faster than the refresh rate
+set using 'measure mode':
+```
+// I2C Setup omitted
+
+// Ccs811.MODE-0 = Off = No samples
+// Ccs811.MODE-1 = Measure mode 1 = 1 sec samples
+// Ccs811.MODE-2 = Measure mode 2 = 10 sec samples
+// Ccs811.MODE-3 = Measure mode 3 = 60 sec samples
+// Ccs811.MODE-4 = Measure mode 4 = no samples - but raw values returned every 250ms.
+
+// Establish driver, constructor with measure mode 1
+driver := Ccs811 ccs811-device --measure-mode=Ccs811.MODE-1
+
+// Start the driver without waiting for the first sample
+// driver := Ccs811 ccs811-device --measure-mode=Ccs811.MODE-1 --wait-for-first-sample=false
+
+print "eCO2 $(driver.read-eco2) ppm"
+print "eTVOC $(driver.read-etvoc) ppb"
+```
+
 ### Temperature and Humidity Compensation:
 If an external sensor is available, temperature and humidity information can be
 passed to the CCS811.  The IC will automatically compensate its readings
@@ -52,7 +81,7 @@ driver.set-eco2-thresholds --low=1500 --high=2500
 // Sets 1sec measurements, and enables the threshold interrupt.
 set-measure-mode Ccs811.MODE-1 --intrpt-threshold=True
 ```
-### Reset Pin
+### Reset Pin:
 RESET is an active low input and is pulled up to VDD by default.  RESET is
 optional, but 4.7kOhm pull-up and/or decoupling of the nRESET pin may be
 necessary to avoid erroneous noise-induced resets.  This pin is pulled low
