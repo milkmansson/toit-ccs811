@@ -149,6 +149,39 @@ repo](https://github.com/maarten-pennings/CCS811/blob/master/examples/ccs811flas
 for help on updating, if it is indeed required.  Raise an issue if a need exists
 for updating in this driver.
 
+### What is 'e'-CO2 and what are VOC's?
+Some internet research revealed the following:
+- **eCO2** is not a true CO₂ concentration measured with infrared absorption. It’s
+  an algorithmic estimate of how much CO₂ would be present if the detected
+  volatile organic compound (VOC) levels came from human metabolism (breathing,
+  cooking, etc).
+- The CCS811’s metal-oxide sensor measures how reactive gases change its
+  resistance.  The internal algorithm then correlates those changes with CO₂
+  levels typical of indoor air pollution and human occupancy.
+- **eTVOC** A summed estimate of all oxidizable gases the sensor detects,
+  expressed in ppb (parts per billion).  This value is also algorithmic: the
+  CCS811’s MOX layer can’t distinguish individual chemicals, so it's output is
+  an aggregate "VOC burden."
+
+### Typical Ranges for eCO2
+Typical ranges appear to be:
+| eCO2	| (Indoor) Air Quality Interpretation |
+| - | - |
+| 400–800	ppm  | Fresh, well-ventilated air |
+| 800–1200	ppm | Slightly stale / occupied room |
+| 1200–2000	ppm | Poor ventilation |
+| >2000 ppm |	Unhealthy, stuffy |
+
+### Ranges for eTVOC
+This is significantly harder to determine, as the sensor will react to quite a
+wide range of compounds, including Combustion products, air fresheners, solvents
+like nail polish remover, etc.
+| eTVOC | (Indoor) Air Quality Interpretation |
+| - | - |
+| < 150 ppb	| Excellent air |
+| 150–500 ppb	| Moderate pollutants, normal indoor |
+| > 1000 ppb | Poor air quality |
+
 
 ## Sources/Links
 Links to sources:
