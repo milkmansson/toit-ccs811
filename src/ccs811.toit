@@ -319,9 +319,9 @@ class Ccs811:
 
     // Report changed values
     if humidity != null:
-      logger_.info "Set calibration humidity.    " --tags={"humidity":humidity , "raw":raw-hum}
+      logger_.info "Set calibration humidity. " --tags={"humidity":cached-humidity-corr-pct_ , "raw":raw-hum}
     if temp != null:
-      logger_.info "Set calibration temperature. " --tags={"temp":temp,"raw":raw-temp}
+      logger_.info "Set calibration temperature. " --tags={"temp":cached-temp-corr-c_,"raw":raw-temp}
 
   /**
   Return the temp and humidity values for the sensor to calibrate with.

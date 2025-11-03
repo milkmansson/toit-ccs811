@@ -50,9 +50,8 @@ main:
     print " * Found BME280 on 0x$(%02x bme280.I2C-ADDRESS)"
     bme280-device = bus.device bme280.I2C-ADDRESS
     bme280-driver = bme280.Driver bme280-device
-    print " BME280 Current Temperature: $(%02f bme280-driver.read-temperature) c"
-    print " BME280 Current Huimidity:   $(%02f bme280-driver.read-humidity) %rh"
-
+    //print " BME280 Current Temperature: $(%02f bme280-driver.read-temperature) c"
+    //print " BME280 Current Huimidity:   $(%02f bme280-driver.read-humidity) %rh"
 
   // Initialise variables
   timestart-us := 0
@@ -62,21 +61,26 @@ main:
   eco2 := 0
   etvoc := 0
 
+  // Test repeats
+  repeat-times := 4
+
+  // How many times `is-ready` should be checked inside of `wait-timeout`
+  wait-divisor := 50
+
   // Show Default Values
   print
   print " Default Temp and Humidity Correction in the driver: Temp: $(%0.2f ccs811-driver.get-temp-calibration)c $(%0.2f ccs811-driver.get-humidity-calibration)%rh"
-  print
 
   // Do x reads and see the values.  Monitor time taken.
   // Sleep for a reasonable period between each measurement.
-  3.repeat:
+  repeat-times.repeat:
     timestart-us = Time.monotonic-us
     count = 0
     ready = false
     while not ready:
       count += 1
       ready = ccs811-driver.is-data-ready
-      sleep (ccs811-driver.wait-timeout / 50)
+      sleep (ccs811-driver.wait-timeout / wait-divisor)
 
     eco2 = ccs811-driver.read-eco2
     etvoc = ccs811-driver.read-etvoc
@@ -88,20 +92,43 @@ main:
   humid := bme280-driver.read-humidity
   print " Set Temp and Humidity Correction in the driver: Temp: $(%0.2f temp)c $(%0.2f humid)%rh"
   ccs811-driver.set-temp-humidity --humidity=humid --temp=temp
-  print
 
   // Do x reads and see the values.  Monitor time taken.
   // Sleep for a reasonable period between each measurement.
-  3.repeat:
+  repeat-times.repeat:
     timestart-us = Time.monotonic-us
     count = 0
     ready = false
     while not ready:
       count += 1
       ready = ccs811-driver.is-data-ready
-      sleep (ccs811-driver.wait-timeout / 50)
+      sleep (ccs811-driver.wait-timeout / wait-divisor)
 
     eco2 = ccs811-driver.read-eco2
     etvoc = ccs811-driver.read-etvoc
     timetaken = Duration --us=(Time.monotonic-us - timestart-us)
     print "     Reading $(it + 1):  \teCO2: $(eco2)ppm  \teTVOC: $(etvoc)ppb  \t[time taken = $(ccs811-driver.duration-to-string timetaken)]"
+
+  print
+  silly-temp := 60.0
+  silly-humidity := 90.0
+  print " Set *silly* values as Temp and Humidity Correction in the driver: Temp: $(%0.2f silly-temp)c $(%0.2f silly-humidity)%rh"
+  ccs811-driver.set-temp-humidity --humidity=silly-humidity --temp=silly-temp
+
+  // Do x reads and see the values.  Monitor time taken.
+  // Sleep for a reasonable period between each measurement.
+  repeat-times.repeat:
+    timestart-us = Time.monotonic-us
+    count = 0
+    ready = false
+    while not ready:
+      count += 1
+      ready = ccs811-driver.is-data-ready
+      sleep (ccs811-driver.wait-timeout / wait-divisor)
+
+    eco2 = ccs811-driver.read-eco2
+    etvoc = ccs811-driver.read-etvoc
+    timetaken = Duration --us=(Time.monotonic-us - timestart-us)
+    print "     Reading $(it + 1):  \teCO2: $(eco2)ppm  \teTVOC: $(etvoc)ppb    \t[time taken = $(ccs811-driver.duration-to-string timetaken)]"
+
+  print
