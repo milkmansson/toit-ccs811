@@ -4,7 +4,6 @@
 
 import gpio
 import i2c
-import bme280
 import ccs811 show *
 
 /**
