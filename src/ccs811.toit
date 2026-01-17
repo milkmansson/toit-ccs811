@@ -258,7 +258,7 @@ class Ccs811:
   */
   read-raw-sensor-current -> float:
     raw := read-register_ REG-RAW-DATA_ --mask=RAW-DATA-CURRENT-SELECTED-MASK_ --width=16
-    return raw
+    return raw.to-float
 
   /**
   Reads the raw voltage across the sensor (1023 = 1.65V)
@@ -599,12 +599,12 @@ class Ccs811:
   /**
   Reads and optionally masks/parses register data
   */
-  read-register_
+  read-register_ -> int
       register/int
       --mask/int?=null
       --offset/int?=null
       --width/int=DEFAULT-REGISTER-WIDTH_
-      --signed/bool=false -> any:
+      --signed/bool=false:
     assert: (width == 8) or (width == 16) or (width == 32)
     if mask == null:
       if      width == 8:  mask = 0xFF
@@ -643,13 +643,13 @@ class Ccs811:
   /**
   Writes register data (masked or full register writes)
   */
-  write-register_
+  write-register_ -> none
       register/int
-      value/any
+      value/int
       --mask/int?=null
       --offset/int?=null
       --width/int=DEFAULT-REGISTER-WIDTH_
-      --signed/bool=false -> none:
+      --signed/bool=false:
     assert: (width == 8) or (width == 16) or (width == 32)
     if mask == null:
       if      width == 8:  mask = 0xFF
@@ -667,12 +667,12 @@ class Ccs811:
       ((width == 16) and (mask == 0xFFFF) and (offset == 0)) or
       ((width == 32) and (mask == 0xFFFFFFFF) and (offset == 0)):
       if width == 8:
-        signed ? reg_.write-i8 register (value & 0xFF) : reg_.write-u8 register (value & 0xFF)
+        signed ? reg_.write-i8 register value : reg_.write-u8 register value
       else if width == 16:
-        signed ? reg_.write-i16-be register (value & 0xFFFF) : reg_.write-u16-be register (value & 0xFFFF)
+        signed ? reg_.write-i16-be register value : reg_.write-u16-be register value
       else:
-        bit-32-ba = to-bytes32 (value & 0xFFFFFFFF)
-        signed ? reg_.write-i32-be register (value & 0xFFFFFFFF) : reg_.write-bytes register bit-32-ba
+        bit-32-ba = to-bytes32 value
+        signed ? reg_.write-i32-be register value : reg_.write-bytes register bit-32-ba
       return
 
     // Read Reg for modification
@@ -710,7 +710,6 @@ class Ccs811:
       bit-32-ba = to-bytes32 new-value
       signed ? reg_.write-i32-be register new-value : reg_.write-bytes register bit-32-ba
       return
-    throw "write-register_: Unhandled Circumstance."
 
   /**
   Provides strings to display bitmasks nicely when testing.
